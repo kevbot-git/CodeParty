@@ -1,0 +1,114 @@
+{
+    "name": "codeparty",
+    "displayName": "CodeParty",
+    "description": "Collaborate with teams real-time on code projects.",
+    "version": "0.0.1",
+    "publisher": "kevbot-git",
+    "repository" : {
+        "type" : "git", 
+        "url" : "https://github.com/kevbot-git/CodeParty.git"
+    },
+    "engines": {
+        "vscode": "^1.13.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "*"
+    ],
+    "main": "./out/src/extension",
+    "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "CodeParty",
+            "properties": {
+                "codeparty": {
+                    "type": "object",
+                    "default": {
+                        "firebase_config": {
+                            "apiKey": null,
+                            "authDomain": null,
+                            "databaseURL": null,
+                            "projectId": null,
+                            "storageBucket": null,
+                            "messagingSenderId": null
+                        }
+                    },
+                    "description": "Your CodeParty settings",
+                    "properties": {
+                        "firebase_config": {
+                            "type": "object",
+                            "default": null,
+                            "description": "Your firebase app's configuration object. See https://console.firebase.google.com for more information.",
+                            "properties": {
+                                "apiKey": {
+                                    "type": "string",
+                                    "default": false,
+                                    "description": "Your firebase app's API key."
+                                },
+                                "authDomain": {
+                                    "type": "string",
+                                    "default": false,
+                                    "description": "Your firebase app's authentication domain."
+                                },
+                                "databaseUrl": {
+                                    "type": "string",
+                                    "default": false,
+                                    "description": "Your firebase app's realtime database URL."
+                                },
+                                "projectId": {
+                                    "type": "string",
+                                    "default": false,
+                                    "description": "Your firebase app's project name."
+                                },
+                                "storageBucket": {
+                                    "type": "string",
+                                    "default": false,
+                                    "description": "Your firebase app's Storage Bucket domain."
+                                },
+                                "messagingSenderId": {
+                                    "type": "string",
+                                    "default": false,
+                                    "description": "Your firebase app's messaging sender ID."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "extension.configure",
+                "title": "CodeParty: Configure"
+            },
+            {
+                "command": "extension.start",
+                "title": "CodeParty: Start"
+            },
+            {
+                "command": "extension.disconnect",
+                "title": "CodeParty: Disconnect"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "tsc -p ./",
+        "compile": "rd /s /q out & tsc -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "node ./node_modules/vscode/bin/test"
+    },
+    "devDependencies": {
+        "@types/lodash": "^4.14.67",
+        "@types/mocha": "^2.2.32",
+        "@types/node": "^6.0.40",
+        "mocha": "^2.3.3",
+        "typescript": "^2.0.3",
+        "vscode": "^1.0.0"
+    },
+    "dependencies": {
+        "firebase": "^4.1.3",
+        "lodash": "^4.17.4"
+    }
+}
