@@ -44,9 +44,12 @@ export class CodeParty {
 
 	private authenticate(): Thenable<any> {
 		CodeParty.log('Authenticating...');
+		let _auth = this.auth = this.app.auth();
 
 		let actions: { title: string, action: () => Thenable<any> }[] = [
-			{ title: 'Sign in with existing account', action: this.signIn },
+			{ title: 'Sign in with existing account', action: () => {
+				return this.signIn(_auth);
+			} },
 			{ title: 'Sign up for CodeParty', action: () => {
 				return vscode.window.showInformationMessage('Coming soon!');
 			}}
@@ -59,8 +62,7 @@ export class CodeParty {
 		);
 	}
 
-	private signIn(): Thenable<void> {
-		let _this: CodeParty = this;
+	private signIn(_auth: firebase.auth.Auth): Thenable<void> {
 
 		return new Promise<{ email: string, password: string }>((resolve, reject) => {
 			CodeParty.log('Showing sign-in...');
@@ -76,18 +78,12 @@ export class CodeParty {
 					resolve({ email: email, password: password });
 				});
 			});
-		}).then((credentials) => {
-			CodeParty.log('email: ' + credentials.email + ' pass: ' + credentials.password);
-			_this.auth = _this.app.auth();
-			_this.auth.signInWithEmailAndPassword(credentials.email, credentials.password).catch((error) => {
-				CodeParty.error(error.message);
-			});
-			// }).then((user) => {
-			// 	CodeParty.log('user obj:', user);
-			// 	//this.user = user;
-			// 	CodeParty.log('Welcome, ' + this.user.email + '!');
-			// });
-		}).catch((error) => {
+		}).then((credentials) => _auth.signInWithEmailAndPassword(
+			credentials.email,
+			credentials.password
+		).then((user) => {
+			CodeParty.log('Welcome, ' + ((user.displayName)? user.displayName: user.email) + '!')
+		})).catch((error) => {
 			CodeParty.error(error);
 		});
 	}
