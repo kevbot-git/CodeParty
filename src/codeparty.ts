@@ -9,12 +9,17 @@ export class CodeParty {
 	public static CONFIG_NAME: string = 'codeparty';
 
 	private app: firebase.app.App;
+	private auth: firebase.auth.Auth;
 	private db: firebase.database.Database;
 	private ref: firebase.database.Reference;
+	private user: firebase.User;
+
 	private config: vscode.WorkspaceConfiguration;
+	private mainStatusBarItem: vscode.StatusBarItem;
 
 	public constructor(config: vscode.WorkspaceConfiguration) {
 		this.config = config;
+		this.registerStatusBarItems();
 		if(typeof this.config === 'undefined') {
 			throw new ConfigNotFoundError();
 		}
@@ -25,9 +30,11 @@ export class CodeParty {
 
 	public start(): void {
 		CodeParty.log('Starting...');
-		this.connect();
-		this.registerListeners();
-		vscode.window.showInformationMessage('CodeParty started!');
+		this.connect().then(() =>
+			this.checkAuthentication()
+		).then(() => {
+			this.registerListeners();
+		});
 	}
 
 	public disconnect(): void {
@@ -35,35 +42,110 @@ export class CodeParty {
         vscode.window.showInformationMessage('CodeParty disconnected.');
 	}
 
-	private connect(): void {
-		CodeParty.log('Connecting...');
-		let firebase_config = this.config.get<object>('firebase_config');
+	private authenticate(): Thenable<any> {
+		CodeParty.log('Authenticating...');
 
-		_.forEach(_.values(firebase_config), (v) => {
-			if(v == null) {
-				throw new IncompleteConfigError();
-			}
+		let actions: { title: string, action: () => Thenable<any> }[] = [
+			{ title: 'Sign in with existing account', action: this.signIn },
+			{ title: 'Sign up for CodeParty', action: () => {
+				return vscode.window.showInformationMessage('Coming soon!');
+			}}
+		];
+
+		return vscode.window.showQuickPick(_.map(actions, 'title')).then((choice) => 
+			_.find(actions, (action) => {
+				return action.title === choice;
+			}).action()
+		);
+	}
+
+	private signIn(): Thenable<void> {
+		let _this: CodeParty = this;
+
+		return new Promise<{ email: string, password: string }>((resolve, reject) => {
+			CodeParty.log('Showing sign-in...');
+			vscode.window.showInputBox(<vscode.InputBoxOptions> {
+					prompt: '[CodeParty] Enter your email:',
+					placeHolder: 'e.g. someone@example.com'
+				}
+			).then((email) => {
+				vscode.window.showInputBox(<vscode.InputBoxOptions> {
+					prompt: '[CodeParty] Password for ' + email + ':',
+					password: true
+				}).then((password) => {
+					resolve({ email: email, password: password });
+				});
+			});
+		}).then((credentials) => {
+			CodeParty.log('email: ' + credentials.email + ' pass: ' + credentials.password);
+			_this.auth = _this.app.auth();
+			_this.auth.signInWithEmailAndPassword(credentials.email, credentials.password).catch((error) => {
+				CodeParty.error(error.message);
+			});
+			// }).then((user) => {
+			// 	CodeParty.log('user obj:', user);
+			// 	//this.user = user;
+			// 	CodeParty.log('Welcome, ' + this.user.email + '!');
+			// });
+		}).catch((error) => {
+			CodeParty.error(error);
 		});
+	}
 
-		this.app = firebase.initializeApp(firebase_config);
+	private checkAuthentication(): Thenable<void> {
+		CodeParty.log('Checking authentication...');
 
-		this.db = firebase.database(this.app);
-		this.ref = this.db.ref('projects/' + 'test1'); // Temporary!
-		CodeParty.log('Connected.');
+		// if(this.auth === null) {
+			
+		// }
+
+		return this.authenticate().then(() => {
+			CodeParty.log('Authenticated!');
+		});
+	}
+
+	private connect(): Thenable<void> {
+		return new Promise<void>((resolve, reject) => {
+			CodeParty.log('Connecting...');
+			let firebase_config = this.config.get<object>('firebase_config');
+
+			_.forEach(_.values(firebase_config), (v) => {
+				if(v == null) {
+					throw new IncompleteConfigError();
+				}
+			});
+
+			this.app = firebase.initializeApp(firebase_config);
+
+			this.db = firebase.database(this.app);
+			this.ref = this.db.ref('projects/' + 'test1'); // Temporary!
+			CodeParty.log('Connected.');
+			resolve();
+		});
+	}
+
+	private getAuth(): firebase.auth.Auth {
+		return this.auth;
+	}
+
+	private registerStatusBarItems(): void {
+		this.mainStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
+		this.mainStatusBarItem.text = 'Test!';
+		this.mainStatusBarItem.show();
 	}
 
 	private registerListeners(): void {
 		CodeParty.log('Registering listeners...');
-		vscode.workspace.onDidChangeTextDocument((event) => {
-			CodeParty.log('Change:', event);
-		});
-		// this.ref.on('value', function(snapshot) {
-		// 	CodeParty.log('new val: ' + snapshot.val().body);
-		// });
-		//	ref.set({
-		// 		body: text
-		// 	}).catch((err: any) => CodeParty.log(err));
+		vscode.workspace.onDidChangeTextDocument(this.onEditEvent);
 		CodeParty.log('Listeners registered.');
+	}
+
+	private onEditEvent(event: vscode.TextDocumentChangeEvent) {
+		CodeParty.log('Change made to ' + vscode.workspace.asRelativePath(event.document.uri) + ':', event);
+		if(Utils.documentIsInProjectDir(event.document)) { // Only work with files in the workspace's open folder
+			// 	filename: vscode.workspace.asRelativePath(event.document.uri)
+			CodeParty.log('Text: ' + event.document.getText());
+		}
 	}
 
 	public static log: any = function() {
@@ -93,4 +175,10 @@ export class IncompleteConfigError extends Error {
 		this.name = 'IncompleteConfigError';
 	}
 
+}
+
+export class Utils {
+	public static documentIsInProjectDir(document: vscode.TextDocument): boolean {
+		return document.uri.fsPath.startsWith(vscode.workspace.rootPath);
+	}
 }

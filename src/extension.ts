@@ -42,7 +42,8 @@ export function activate(context: vscode.ExtensionContext) {
         else if(e instanceof IncompleteConfigError) {
             CodeParty.error(e.message);
         }
-        codeParty.disconnect();
+        CodeParty.error('[Unexpected] ' + e.stack);
+        // do something else?
     }
 
     commands.forEach(cmd => {

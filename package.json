@@ -37,6 +37,20 @@
                     },
                     "description": "Your CodeParty settings",
                     "properties": {
+                        "auth": {
+                            "type": "object",
+                            "description": "Your CodeParty user ID",
+                            "properties": {
+                                "provider": {
+                                    "type": "string",
+                                    "description": "Authentication method provider."
+                                },
+                                "user_id": {
+                                    "type": "string",
+                                    "description": "Authentication user ID"
+                                }
+                            }
+                        },
                         "firebase_config": {
                             "type": "object",
                             "default": null,
