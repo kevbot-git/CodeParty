@@ -66,14 +66,17 @@ export class CodeParty {
 
 		return new Promise<{ email: string, password: string }>((resolve, reject) => {
 			CodeParty.log('Showing sign-in...');
-			vscode.window.showInputBox(<vscode.InputBoxOptions> {
+			vscode.window.showInputBox(
+				<vscode.InputBoxOptions> {
 					prompt: '[CodeParty] Enter your email:',
-					placeHolder: 'e.g. someone@example.com'
+					placeHolder: 'e.g. someone@example.com',
+					ignoreFocusOut: true
 				}
 			).then((email) => {
 				vscode.window.showInputBox(<vscode.InputBoxOptions> {
 					prompt: '[CodeParty] Password for ' + email + ':',
-					password: true
+					password: true,
+					ignoreFocusOut: true
 				}).then((password) => {
 					resolve({ email: email, password: password });
 				});
